@@ -14,12 +14,14 @@
 
 #include <gmock/gmock.h>
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
 #include <utility>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 #include "rclcpp/client.hpp"
 #include "rclcpp/executors/single_threaded_executor.hpp"
@@ -181,6 +183,11 @@ public:
   {
     // Not too worried about the exact timing in this test, give a lot of leeway
     const auto condition_clear_time = std::chrono::milliseconds(ms_between_msgs_ * 100);
+    if (!messages_should_arrive && reset_message_counter) {
+      // A pause does not wait for a publish that already started, and that message may arrive
+      // after the pause response.
+      std::this_thread::sleep_for(std::chrono::milliseconds(ms_between_msgs_));
+    }
     std::unique_lock<std::mutex> lock(got_msg_mutex_);
     if (reset_message_counter) {
       message_counter_ = 0;
